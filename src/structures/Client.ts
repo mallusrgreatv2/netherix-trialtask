@@ -10,31 +10,13 @@ import mongoose from "mongoose";
 import "dotenv/config";
 
 import ClientConfig from "@/interfaces/ClientConfig.js";
-import initHandlers from "@/handlers/index.js";
 
 import Command from "@/structures/Command.js";
-import Modal from "@/structures/Modal.js";
-import Button from "@/structures/Button.js";
-import StringSelect from "@/structures/Select/String.js";
-import ChannelSelect from "@/structures/Select/Channel.js";
-import RoleSelect from "@/structures/Select/Role.js";
-import UserSelect from "@/structures/Select/User.js";
-import MentionableSelect from "@/structures/Select/Mentionable.js";
-import ContextMenu from "@/structures/ContextMenu.js";
+import initHandlers from "@/handlers/index.js";
 
 export default class Client extends BaseClient {
   readonly config: ClientConfig = process.env as unknown as ClientConfig;
   readonly commands: Collection<string, Command> = new Collection();
-  readonly modals: Collection<string, Modal> = new Collection();
-  readonly selects = {
-    string: new Collection() as Collection<string, StringSelect>,
-    channel: new Collection() as Collection<string, ChannelSelect>,
-    role: new Collection() as Collection<string, RoleSelect>,
-    user: new Collection() as Collection<string, UserSelect>,
-    mentionable: new Collection() as Collection<string, MentionableSelect>,
-  };
-  readonly contextMenus: Collection<string, ContextMenu> = new Collection();
-  readonly buttons: Collection<string, Button> = new Collection();
   readonly logger = winston.createLogger({
     level: "info",
     format: winston.format.json(),
@@ -42,7 +24,11 @@ export default class Client extends BaseClient {
   });
   constructor() {
     super({
-      intents: [GatewayIntentBits.Guilds],
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessages,
+      ],
     });
     if (process.env.NODE_ENV !== "production") {
       this.logger.add(
@@ -54,7 +40,7 @@ export default class Client extends BaseClient {
   }
   async init() {
     initHandlers(this);
-    if (this.config.MONGODB_ENABLED === "true") await this.mongoDBconnect();
+    await this.mongoDBconnect();
     try {
       await this.login(this.config.TOKEN);
     } catch (err) {
